@@ -336,7 +336,7 @@ services:
         condition: service_healthy
         restart: true
         required: false
-    command: ["./scripts/start.pdf.worker.sh"]
+    command: ["./scripts/start.pdfs.worker.sh"]
     healthcheck:
       test: curl -f http://localhost:8080 || exit 1
       interval: 10s
