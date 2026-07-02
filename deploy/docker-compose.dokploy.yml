@@ -13,9 +13,11 @@ x-redis-image: &redis-image
 
 x-backend-image: &backend-image
   image: ${LAGO_API_IMAGE:-ghcr.io/ai-hub-growth/lago-api:main}
+  pull_policy: always
 
 x-frontend-image: &frontend-image
   image: ${LAGO_FRONT_IMAGE:-ghcr.io/ai-hub-growth/lago-front:main}
+  pull_policy: always
 
 x-public-urls: &public-urls
   LAGO_FRONT_URL: ${LAGO_FRONT_URL:-https://${LAGO_DOMAIN}}
