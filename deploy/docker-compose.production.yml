@@ -111,10 +111,6 @@ services:
       POSTGRES_SCHEMA: public
     volumes:
       - lago_postgres_data:/data/postgres
-    profiles:
-      - all
-      - all-no-redis
-      - all-no-keys
 
   redis:
     <<: *redis-image
@@ -128,10 +124,6 @@ services:
     command: --port ${REDIS_PORT:-6379}
     volumes:
       - lago_redis_data:/data
-    profiles:
-      - all
-      - all-no-pg
-      - all-no-keys
 
   rsa-keys:
     <<: *backend-image
@@ -139,11 +131,6 @@ services:
     command: ["./scripts/generate.rsa.sh"]
     volumes:
       - lago_rsa_data:/app/config/keys
-    profiles:
-      - all
-      - all-no-pg
-      - all-no-redis
-      - all-no-db
 
   migrate:
     <<: *backend-image
