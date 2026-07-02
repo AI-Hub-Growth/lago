@@ -14,13 +14,13 @@ x-redis-image: &redis-image
 x-backend-image: &backend-image
   image: ${LAGO_API_IMAGE:-lago-api:local}
   build:
-    context: ../api
+    context: https://github.com/AI-Hub-Growth/lago-api.git#84f1cc12d1a9cea87581c109bf0c19c23d8cafdb
     dockerfile: Dockerfile
 
 x-frontend-image: &frontend-image
   image: ${LAGO_FRONT_IMAGE:-lago-front:local}
   build:
-    context: ../front
+    context: https://github.com/AI-Hub-Growth/lago-front.git#f661fa3a7c2df477944a53f9e960b209dfe4c7c3
     dockerfile: Dockerfile
 
 x-public-urls: &public-urls
