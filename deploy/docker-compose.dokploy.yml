@@ -14,13 +14,13 @@ x-redis-image: &redis-image
 x-backend-image: &backend-image
   image: ${LAGO_API_IMAGE:-lago-api:local}
   build:
-    context: ./api
+    context: ../api
     dockerfile: Dockerfile
 
 x-frontend-image: &frontend-image
   image: ${LAGO_FRONT_IMAGE:-lago-front:local}
   build:
-    context: ./front
+    context: ../front
     dockerfile: Dockerfile
 
 x-public-urls: &public-urls
