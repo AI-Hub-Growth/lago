@@ -25,7 +25,7 @@ x-frontend-image: &frontend-image
 
 x-public-urls: &public-urls
   LAGO_FRONT_URL: ${LAGO_FRONT_URL:-https://${LAGO_DOMAIN}}
-  LAGO_API_URL: ${LAGO_API_URL:-https://${LAGO_DOMAIN}/api}
+  LAGO_API_URL: ${LAGO_API_URL:-https://${LAGO_DOMAIN}/api/}
 
 x-backend-environment: &backend-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-lago}:${POSTGRES_PASSWORD:-changeme}@${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-lago}?search_path=${POSTGRES_SCHEMA:-public}
