@@ -1,0 +1,68 @@
+name: Build GHCR Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-ghcr-images.yml
+      - .github/workflows/docker-build-multi-arch.yaml
+      - api
+      - front
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  refs:
+    runs-on: ubuntu-latest
+    outputs:
+      api_ref: ${{ steps.refs.outputs.api_ref }}
+      front_ref: ${{ steps.refs.outputs.front_ref }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Resolve submodule refs
+        id: refs
+        run: |
+          api_ref="$(git ls-tree HEAD api | awk '{print $3}')"
+          front_ref="$(git ls-tree HEAD front | awk '{print $3}')"
+
+          if [ -z "$api_ref" ] || [ -z "$front_ref" ]; then
+            echo "::error::Could not resolve api/front submodule refs"
+            exit 1
+          fi
+
+          echo "api_ref=$api_ref" >> "$GITHUB_OUTPUT"
+          echo "front_ref=$front_ref" >> "$GITHUB_OUTPUT"
+
+  api:
+    needs: refs
+    uses: ./.github/workflows/docker-build-multi-arch.yaml
+    with:
+      image-name: ghcr.io/ai-hub-growth/lago-api
+      registry: ghcr
+      repository: AI-Hub-Growth/lago-api
+      ref: ${{ needs.refs.outputs.api_ref }}
+      platforms: amd64
+      tags: |
+        type=raw,value=main
+    secrets: inherit
+
+  front:
+    needs: refs
+    uses: ./.github/workflows/docker-build-multi-arch.yaml
+    with:
+      image-name: ghcr.io/ai-hub-growth/lago-front
+      registry: ghcr
+      repository: AI-Hub-Growth/lago-front
+      ref: ${{ needs.refs.outputs.front_ref }}
+      platforms: amd64
+      tags: |
+        type=raw,value=main
+    secrets: inherit

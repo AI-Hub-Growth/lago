@@ -12,16 +12,10 @@ x-redis-image: &redis-image
   image: redis:7-alpine
 
 x-backend-image: &backend-image
-  image: ${LAGO_API_IMAGE:-lago-api:local}
-  build:
-    context: https://github.com/AI-Hub-Growth/lago-api.git#84f1cc12d1a9cea87581c109bf0c19c23d8cafdb
-    dockerfile: Dockerfile
+  image: ${LAGO_API_IMAGE:-ghcr.io/ai-hub-growth/lago-api:main}
 
 x-frontend-image: &frontend-image
-  image: ${LAGO_FRONT_IMAGE:-lago-front:local}
-  build:
-    context: https://github.com/AI-Hub-Growth/lago-front.git#f661fa3a7c2df477944a53f9e960b209dfe4c7c3
-    dockerfile: Dockerfile
+  image: ${LAGO_FRONT_IMAGE:-ghcr.io/ai-hub-growth/lago-front:main}
 
 x-public-urls: &public-urls
   LAGO_FRONT_URL: ${LAGO_FRONT_URL:-https://${LAGO_DOMAIN}}
