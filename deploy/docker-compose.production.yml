@@ -85,9 +85,6 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.email=${LAGO_ACME_EMAIL:-your_email@example.com}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory"
-    ports:
-      - 8080:8080
-      - 443:443
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "./letsencrypt:/letsencrypt"
@@ -114,8 +111,6 @@ services:
       POSTGRES_SCHEMA: public
     volumes:
       - lago_postgres_data:/data/postgres
-    ports:
-      - ${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}
     profiles:
       - all
       - all-no-redis
@@ -133,8 +128,6 @@ services:
     command: --port ${REDIS_PORT:-6379}
     volumes:
       - lago_redis_data:/data
-    ports:
-      - ${REDIS_PORT:-6379}:${REDIS_PORT:-6379}
     profiles:
       - all
       - all-no-pg
