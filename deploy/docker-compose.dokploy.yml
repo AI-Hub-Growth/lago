@@ -4,8 +4,6 @@ volumes:
   lago_postgres_data:
   lago_redis_data:
   lago_storage_data:
-  lago_redpanda_data:
-  lago_clickhouse_data:
 
 x-postgres-image: &postgres-image
   image: getlago/postgres-partman:15.0-alpine
@@ -54,28 +52,6 @@ x-backend-environment: &backend-env
   LAGO_PDF_URL: ${LAGO_PDF_URL:-http://pdf:3000}
   LAGO_DATA_API_URL: ${LAGO_DATA_API_URL:-http://data-api}
   LAGO_DATA_API_BEARER_TOKEN: ${LAGO_DATA_API_BEARER_TOKEN:-}
-  LAGO_CLICKHOUSE_ENABLED: ${LAGO_CLICKHOUSE_ENABLED:-true}
-  LAGO_CLICKHOUSE_MIGRATIONS_ENABLED: ${LAGO_CLICKHOUSE_MIGRATIONS_ENABLED:-true}
-  LAGO_CLICKHOUSE_HOST: ${LAGO_CLICKHOUSE_HOST:-clickhouse}
-  LAGO_CLICKHOUSE_PORT: ${LAGO_CLICKHOUSE_PORT:-8123}
-  LAGO_CLICKHOUSE_DATABASE: ${LAGO_CLICKHOUSE_DATABASE:-default}
-  LAGO_CLICKHOUSE_USERNAME: ${LAGO_CLICKHOUSE_USERNAME:-default}
-  LAGO_CLICKHOUSE_PASSWORD: ${LAGO_CLICKHOUSE_PASSWORD:-default}
-  LAGO_KAFKA_BOOTSTRAP_SERVERS: ${LAGO_KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
-  LAGO_KAFKA_RAW_EVENTS_TOPIC: ${LAGO_KAFKA_RAW_EVENTS_TOPIC:-events-raw}
-  LAGO_KAFKA_ENRICHED_EVENTS_TOPIC: ${LAGO_KAFKA_ENRICHED_EVENTS_TOPIC:-events_enriched}
-  LAGO_KAFKA_ENRICHED_EVENTS_EXPANDED_TOPIC: ${LAGO_KAFKA_ENRICHED_EVENTS_EXPANDED_TOPIC:-events_enriched_expanded}
-  LAGO_KAFKA_CLICKHOUSE_CONSUMER_GROUP: ${LAGO_KAFKA_CLICKHOUSE_CONSUMER_GROUP:-clickhouse}
-  LAGO_KAFKA_SCRAM_ALGORITHM: ${LAGO_KAFKA_SCRAM_ALGORITHM:-}
-  LAGO_KAFKA_TLS: ${LAGO_KAFKA_TLS:-}
-  LAGO_KAFKA_USERNAME: ${LAGO_KAFKA_USERNAME:-}
-  LAGO_KAFKA_PASSWORD: ${LAGO_KAFKA_PASSWORD:-}
-  LAGO_KAFKA_EVENTS_CHARGED_IN_ADVANCE_TOPIC: ${LAGO_KAFKA_EVENTS_CHARGED_IN_ADVANCE_TOPIC:-events_charged_in_advance}
-  LAGO_KAFKA_EVENTS_DEAD_LETTER_TOPIC: ${LAGO_KAFKA_EVENTS_DEAD_LETTER_TOPIC:-events_dead_letter}
-  LAGO_KAFKA_ACTIVITY_LOGS_TOPIC: ${LAGO_KAFKA_ACTIVITY_LOGS_TOPIC:-activity_logs}
-  LAGO_KAFKA_API_LOGS_TOPIC: ${LAGO_KAFKA_API_LOGS_TOPIC:-api_logs}
-  LAGO_KAFKA_SECURITY_LOGS_TOPIC: ${LAGO_KAFKA_SECURITY_LOGS_TOPIC:-security_logs}
-  LAGO_KAFKA_CONSUMER_GROUP: ${LAGO_KAFKA_CONSUMER_GROUP:-lago}
   LAGO_REDIS_CACHE_URL: redis://${LAGO_REDIS_CACHE_HOST:-redis}:${LAGO_REDIS_CACHE_PORT:-6379}
   LAGO_REDIS_CACHE_PASSWORD: ${LAGO_REDIS_CACHE_PASSWORD:-}
   LAGO_REDIS_CABLE_URL: ${LAGO_REDIS_CABLE_URL:-}
@@ -145,82 +121,12 @@ services:
     volumes:
       - lago_redis_data:/data
 
-  redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:v25.2.10
-    restart: unless-stopped
-    hostname: redpanda
-    command:
-      - redpanda
-      - start
-      - --smp
-      - "1"
-      - --overprovisioned
-      - --kafka-addr
-      - internal://0.0.0.0:9092
-      - --advertise-kafka-addr
-      - internal://redpanda:9092
-    volumes:
-      - lago_redpanda_data:/var/lib/redpanda/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9644/v1/status/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  redpandacreatetopics:
-    image: docker.redpanda.com/redpandadata/redpanda:v25.2.10
-    depends_on:
-      redpanda:
-        condition: service_healthy
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        set -e
-        rpk topic create events-raw --brokers redpanda:9092 || true
-        rpk topic create events_enriched --brokers redpanda:9092 || true
-        rpk topic create events_charged_in_advance --brokers redpanda:9092 || true
-        rpk topic create events_enriched_expanded --brokers redpanda:9092 || true
-        rpk topic create events_dead_letter --brokers redpanda:9092 || true
-        rpk topic create activity_logs --brokers redpanda:9092 || true
-        rpk topic create api_logs --brokers redpanda:9092 || true
-        rpk topic create security_logs --brokers redpanda:9092 || true
-
-  clickhouse:
-    image: clickhouse/clickhouse-server:26.2-alpine
-    restart: unless-stopped
-    hostname: clickhouse
-    user: "101:101"
-    depends_on:
-      redpanda:
-        condition: service_healthy
-      redpandacreatetopics:
-        condition: service_completed_successfully
-    environment:
-      CLICKHOUSE_DB: ${LAGO_CLICKHOUSE_DATABASE:-default}
-      CLICKHOUSE_USER: ${LAGO_CLICKHOUSE_USERNAME:-default}
-      CLICKHOUSE_PASSWORD: ${LAGO_CLICKHOUSE_PASSWORD:-default}
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-    volumes:
-      - lago_clickhouse_data:/var/lib/clickhouse
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   migrate:
     <<: *backend-image
     depends_on:
       db:
         condition: service_healthy
         restart: true
-      clickhouse:
-        condition: service_healthy
-        restart: true
-      redpandacreatetopics:
-        condition: service_completed_successfully
     command: ["./scripts/migrate.sh"]
     environment:
       <<: [*backend-env, *public-urls]
