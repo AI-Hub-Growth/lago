@@ -206,7 +206,15 @@ services:
       - ../extra/clickhouse/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ../extra/clickhouse/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      test:
+        [
+          "CMD",
+          "clickhouse-client",
+          "--password",
+          "default",
+          "--query",
+          "SELECT 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
