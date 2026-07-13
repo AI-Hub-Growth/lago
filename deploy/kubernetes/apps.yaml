@@ -234,15 +234,9 @@ spec:
         - name: front
           image: ${FRONT_IMAGE}
           imagePullPolicy: IfNotPresent
-          env:
-            - name: API_URL
-              value: https://bo.qnlinking.com
-            - name: APP_ENV
-              value: production
-            - name: LAGO_OAUTH_PROXY_URL
-              value: https://proxy.getlago.com
-            - name: LAGO_DISABLE_PDF_GENERATION
-              value: "false"
+          envFrom:
+            - configMapRef:
+                name: lago-front-env
           ports:
             - name: http
               containerPort: 80

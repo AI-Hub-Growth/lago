@@ -12,6 +12,10 @@ for secret in lago-runtime lago-connections; do
   kubectl get secret "$secret" --namespace lago >/dev/null
 done
 
+for config_map in lago-env lago-front-env; do
+  kubectl get configmap "$config_map" --namespace lago >/dev/null
+done
+
 kubectl apply -f "$SCRIPT_DIR/base.yaml"
 
 envsubst < "$SCRIPT_DIR/migrate.yaml" | kubectl apply -f -
