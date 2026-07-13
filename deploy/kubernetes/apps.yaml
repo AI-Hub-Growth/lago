@@ -1,0 +1,415 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lago-api
+  namespace: lago
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lago-api
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: lago-api
+      initContainers:
+        - name: wait-for-migrations
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - until bundle exec rake db:abort_if_pending_migrations; do echo "Waiting for database migrations"; sleep 10; done
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: api
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["./scripts/start.api.sh"]
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          ports:
+            - name: http
+              containerPort: 3000
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1536Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lago-worker
+  namespace: lago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lago-worker
+    spec:
+      initContainers:
+        - name: wait-for-migrations
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - until bundle exec rake db:abort_if_pending_migrations; do echo "Waiting for database migrations"; sleep 10; done
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: worker
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["./scripts/start.worker.sh"]
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1536Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lago-clock
+  namespace: lago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-clock
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lago-clock
+    spec:
+      initContainers:
+        - name: wait-for-migrations
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - until bundle exec rake db:abort_if_pending_migrations; do echo "Waiting for database migrations"; sleep 10; done
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: clock
+          image: ${API_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: ["./scripts/start.clock.sh"]
+          envFrom:
+            - configMapRef:
+                name: lago-env
+            - secretRef:
+                name: lago-runtime
+            - secretRef:
+                name: lago-connections
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lago-front
+  namespace: lago
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-front
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lago-front
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: lago-front
+      containers:
+        - name: front
+          image: ${FRONT_IMAGE}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: API_URL
+              value: https://bo.qnlinking.com
+            - name: APP_ENV
+              value: production
+            - name: LAGO_OAUTH_PROXY_URL
+              value: https://proxy.getlago.com
+            - name: LAGO_DISABLE_PDF_GENERATION
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lago-pdf
+  namespace: lago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-pdf
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lago-pdf
+    spec:
+      containers:
+        - name: pdf
+          image: lincanvas-registry.cn-hangzhou.cr.aliyuncs.com/lincanvas/lago-gotenberg:7.8.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1024Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lago-api
+  namespace: lago
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: lago-front
+  namespace: lago
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lago-front
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lago
+  namespace: lago
+  annotations:
+    alb.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: alb
+  tls:
+    - hosts:
+        - bo.qnlinking.com
+      secretName: bo.qnlinking.com
+  rules:
+    - host: bo.qnlinking.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /data_api
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /rails
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /webhooks
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /payment_providers
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /cable
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /ready
+            pathType: Exact
+            backend:
+              service:
+                name: lago-api
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lago-front
+                port:
+                  number: 80
