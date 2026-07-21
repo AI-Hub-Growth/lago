@@ -1,0 +1,85 @@
+services:
+  traefik:
+    profiles:
+      - dns
+
+  migrate: &api_image_override
+    image: ghcr.io/ai-hub-growth/lago-api:main
+    platform: linux/amd64
+    pull_policy: if_not_present
+    build: !reset null
+    command: ["./scripts/migrate.sh"]
+
+  api:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.api.sh"]
+    ports:
+      - "3000:3000"
+
+  api-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.worker.sh"]
+
+  api-events-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.events.worker.sh"]
+
+  api-pdfs-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.pdfs.worker.sh"]
+
+  api-billing-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.billing.worker.sh"]
+
+  api-clock-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.clock.worker.sh"]
+
+  api-webhook-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.webhook.worker.sh"]
+
+  api-analytics-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.analytics.worker.sh"]
+
+  api-ai-agent-worker:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.ai_agent.worker.sh"]
+
+  api-clock:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.clock.sh"]
+
+  api-events-consumer:
+    <<: *api_image_override
+    volumes: !reset []
+    command: ["./scripts/start.events.consumer.sh"]
+
+  webhook:
+    ports:
+      - "8081:80"
+
+  mailhog:
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  pghero:
+    ports:
+      - "8082:8080"
+
+  pdf:
+    ports:
+      - "3001:3000"

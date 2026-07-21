@@ -1,0 +1,107 @@
+sources:
+  lago_repo:
+    type: git
+    name: Lago GitHub
+    endpoint: https://github.com/AI-Hub-Growth/lago.git
+    branch: main
+    branchesFilter: ^main$
+    cloneDepth: "1"
+    submodule: "true"
+defaultWorkspace: lago_repo
+stages:
+  build_stage:
+    name: Build Images
+    jobs:
+      api_image_job:
+        name: Build Lago API
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          build_api_image:
+            name: Build and Push API
+            step: DockerBuildPushACREE
+            with:
+              serviceConnection: k5q8u6ottn8u7mxa
+              artifact: lago_api
+              region: cn-hangzhou
+              instance: lincanvas
+              namespace: lincanvas
+              dockerRegistry: lago-api
+              dockerTag: ${CI_COMMIT_ID}
+              dockerfilePath: api/Dockerfile
+              contextPath: api
+              cacheType: remote
+              options: --platform linux/amd64
+      front_image_job:
+        name: Build Lago Front
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          build_front_image:
+            name: Build and Push Front
+            step: DockerBuildPushACREE
+            with:
+              serviceConnection: k5q8u6ottn8u7mxa
+              artifact: lago_front
+              region: cn-hangzhou
+              instance: lincanvas
+              namespace: lincanvas
+              dockerRegistry: lago-front
+              dockerTag: ${CI_COMMIT_ID}
+              dockerfilePath: front/Dockerfile
+              contextPath: front
+              cacheType: remote
+              options: --platform linux/amd64
+  deploy_stage:
+    name: Deploy to ACK
+    jobs:
+      ack_deploy_job:
+        name: Deploy Lago
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          apply_base:
+            name: Apply Base Resources
+            step: KubectlApply
+            with:
+              kubernetesCluster: miuwzk6449yoryqy
+              kubectlVersion: "1.27.9"
+              namespace: lago
+              yamlPath: deploy/kubernetes/base.yaml
+              skipReplace: true
+          run_migrations:
+            name: Run Database Migrations
+            step: KubectlApply
+            with:
+              kubernetesCluster: miuwzk6449yoryqy
+              kubectlVersion: "1.27.9"
+              namespace: lago
+              yamlPath: deploy/kubernetes/migrate.yaml
+              skipReplace: false
+              skipVariableVerify: false
+              variables:
+                - key: IMAGE_TAG
+                  value: ${CI_COMMIT_ID}
+                - key: API_IMAGE
+                  value: $[stages.build_stage.api_image_job.build_api_image.artifacts.lago_api]
+          apply_apps:
+            name: Roll Out Applications
+            step: KubectlApply
+            with:
+              kubernetesCluster: miuwzk6449yoryqy
+              kubectlVersion: "1.27.9"
+              namespace: lago
+              yamlPath: deploy/kubernetes/apps.yaml
+              skipReplace: false
+              skipVariableVerify: false
+              variables:
+                - key: API_IMAGE
+                  value: $[stages.build_stage.api_image_job.build_api_image.artifacts.lago_api]
+                - key: FRONT_IMAGE
+                  value: $[stages.build_stage.front_image_job.build_front_image.artifacts.lago_front]
