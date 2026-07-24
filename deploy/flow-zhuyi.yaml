@@ -32,7 +32,7 @@ stages:
               dockerTag: ${CI_COMMIT_ID}
               dockerfilePath: api/Dockerfile
               contextPath: api
-              cacheType: remote
+              cacheType: no-cache
               options: --platform linux/amd64
       front_image_job:
         name: Build Zhuyi Lago Front
@@ -54,5 +54,5 @@ stages:
               dockerTag: ${CI_COMMIT_ID}
               dockerfilePath: front/Dockerfile
               contextPath: front
-              cacheType: remote
+              cacheType: no-cache
               options: --platform linux/amd64
