@@ -56,25 +56,3 @@ stages:
               contextPath: front
               cacheType: remote
               options: --platform linux/amd64
-      pdf_image_job:
-        name: Build Zhuyi Lago PDF
-        sourceOption: [lago_repo]
-        runsOn:
-          group: public/cn-beijing
-          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
-        steps:
-          build_pdf_image:
-            name: Build and Push Gotenberg
-            step: DockerBuildPushACREE
-            with:
-              serviceConnection: k5q8u6ottn8u7mxa
-              artifact: lago_zhuyi_pdf
-              region: cn-hangzhou
-              instance: lincanvas
-              namespace: lago-zhuyi
-              dockerRegistry: lago-gotenberg
-              dockerTag: ${CI_COMMIT_ID}
-              dockerfilePath: deploy/gotenberg.Dockerfile
-              contextPath: .
-              cacheType: remote
-              options: --platform linux/amd64
