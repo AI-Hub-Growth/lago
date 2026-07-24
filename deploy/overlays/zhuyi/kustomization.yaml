@@ -35,13 +35,13 @@ patches:
     patch: |-
       - op: replace
         path: /spec/tls/0/hosts/0
-        value: lago.zhuyiduanju.com
+        value: bo.zhuyiduanju.com
       - op: replace
         path: /spec/tls/0/secretName
-        value: lago-zhuyiduanju-com-tls
+        value: bo-zhuyiduanju-com-tls
       - op: replace
         path: /spec/rules/0/host
-        value: lago.zhuyiduanju.com
+        value: bo.zhuyiduanju.com
   - target:
       kind: Deployment
       name: lago-api
