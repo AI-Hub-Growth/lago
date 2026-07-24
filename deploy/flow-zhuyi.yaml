@@ -1,0 +1,80 @@
+sources:
+  lago_repo:
+    type: git
+    name: Lago GitHub
+    endpoint: https://github.com/AI-Hub-Growth/lago.git
+    branch: main
+    branchesFilter: ^main$
+    cloneDepth: "1"
+    submodule: "true"
+defaultWorkspace: lago_repo
+stages:
+  build_stage:
+    name: Build Zhuyi Images
+    jobs:
+      api_image_job:
+        name: Build Zhuyi Lago API
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          build_api_image:
+            name: Build and Push API
+            step: DockerBuildPushACREE
+            with:
+              serviceConnection: k5q8u6ottn8u7mxa
+              artifact: lago_zhuyi_api
+              region: cn-hangzhou
+              instance: lincanvas
+              namespace: lago-zhuyi
+              dockerRegistry: lago-api
+              dockerTag: ${CI_COMMIT_ID}
+              dockerfilePath: api/Dockerfile
+              contextPath: api
+              cacheType: remote
+              options: --platform linux/amd64
+      front_image_job:
+        name: Build Zhuyi Lago Front
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          build_front_image:
+            name: Build and Push Front
+            step: DockerBuildPushACREE
+            with:
+              serviceConnection: k5q8u6ottn8u7mxa
+              artifact: lago_zhuyi_front
+              region: cn-hangzhou
+              instance: lincanvas
+              namespace: lago-zhuyi
+              dockerRegistry: lago-front
+              dockerTag: ${CI_COMMIT_ID}
+              dockerfilePath: front/Dockerfile
+              contextPath: front
+              cacheType: remote
+              options: --platform linux/amd64
+      pdf_image_job:
+        name: Build Zhuyi Lago PDF
+        sourceOption: [lago_repo]
+        runsOn:
+          group: public/cn-beijing
+          container: build-steps-public-registry.cn-beijing.cr.aliyuncs.com/build-steps/alinux3:latest
+        steps:
+          build_pdf_image:
+            name: Build and Push Gotenberg
+            step: DockerBuildPushACREE
+            with:
+              serviceConnection: k5q8u6ottn8u7mxa
+              artifact: lago_zhuyi_pdf
+              region: cn-hangzhou
+              instance: lincanvas
+              namespace: lago-zhuyi
+              dockerRegistry: lago-gotenberg
+              dockerTag: ${CI_COMMIT_ID}
+              dockerfilePath: deploy/gotenberg.Dockerfile
+              contextPath: .
+              cacheType: remote
+              options: --platform linux/amd64
