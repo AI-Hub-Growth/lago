@@ -4,15 +4,15 @@ Target:
 
 - ACK cluster: `lincanvas`
 - Namespace: `lago-zhuyi`
-- Domain: `lago.artentiongroup.com`
-- Canvas public URL: `https://jifuwu.artentiongroup.com`
+- Domain: `lago.zhuyiduanju.com`
+- Canvas public URL: `https://www.zhuyiduanju.com`
 - Database: `lago_zhuyi` with a dedicated `lago_zhuyi` account
 - Object storage: Qiniu Kodo through its S3-compatible endpoint
 - Kodo account and bucket: shared with Zhuyi Canvas, bucket `lincanvas`
 - Kodo S3 region: `cn-east-1`
 
 The overlay contains no credentials. Create `lago-runtime`,
-`lago-connections`, and `lago-artentiongroup-com-tls` separately.
+`lago-connections`, and `lago-zhuyiduanju-com-tls` separately.
 
 Required render variables:
 
@@ -49,10 +49,10 @@ Release order:
 4. Create a unique migration Job and wait for `Complete`.
 5. Only after migration succeeds, apply `render.sh runtime` for Deployments
    and PDBs. Wait for every Deployment rollout and run internal health checks.
-6. Obtain a certificate covering `lago.artentiongroup.com` from the customer
-   and create `lago-artentiongroup-com-tls` in `lago-zhuyi`.
+6. Obtain a certificate covering `lago.zhuyiduanju.com` from the customer
+   and create `lago-zhuyiduanju-com-tls` in `lago-zhuyi`.
 7. Apply `render.sh ingress`, then ask the customer to CNAME
-   `lago.artentiongroup.com` to the shared ALB hostname and run external HTTPS
+   `lago.zhuyiduanju.com` to the shared ALB hostname and run external HTTPS
    checks.
 
 `render.sh workloads` remains available when the TLS Secret already exists and
