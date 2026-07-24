@@ -1,0 +1,58 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: lago-zhuyi
+
+resources:
+  - ../../kubernetes
+  - configmaps.yaml
+  - quota.yaml
+
+images:
+  - name: ${API_IMAGE}
+    newName: lincanvas-registry.cn-hangzhou.cr.aliyuncs.com/lago-zhuyi/lago-api
+    newTag: ${IMAGE_TAG}
+  - name: ${FRONT_IMAGE}
+    newName: lincanvas-registry.cn-hangzhou.cr.aliyuncs.com/lago-zhuyi/lago-front
+    newTag: ${IMAGE_TAG}
+patches:
+  - target:
+      kind: Namespace
+      name: lago
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: lago-zhuyi
+      - op: add
+        path: /metadata/labels
+        value:
+          app.kubernetes.io/part-of: lago
+          customer: zhuyi
+          environment: production
+  - target:
+      kind: Ingress
+      name: lago
+    patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: lago.artentiongroup.com
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: lago-artentiongroup-com-tls
+      - op: replace
+        path: /spec/rules/0/host
+        value: lago.artentiongroup.com
+  - target:
+      kind: Deployment
+      name: lago-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/topologySpreadConstraints/0/whenUnsatisfiable
+        value: DoNotSchedule
+  - target:
+      kind: Deployment
+      name: lago-front
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/topologySpreadConstraints/0/whenUnsatisfiable
+        value: DoNotSchedule
